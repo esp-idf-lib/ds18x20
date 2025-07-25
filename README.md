@@ -1,5 +1,9 @@
 # esp-idf-lib/ds18x20
 
+[![Build examples](https://github.com/esp-idf-lib/ds18x20/actions/workflows//build.yml/badge.svg)](https://github.com/esp-idf-lib/ds18x20/actions/workflows//build.yml)
+[![Build docs](https://github.com/esp-idf-lib/ds18x20/actions/workflows//build-docs.yml/badge.svg)](https://github.com/esp-idf-lib/ds18x20/actions/workflows//build-docs.yml)
+[![Validation](https://github.com/esp-idf-lib/ds18x20/actions/workflows//validate-component.yml/badge.svg)](https://github.com/esp-idf-lib/ds18x20/actions/workflows//validate-component.yml)
+
 Driver for DS18B20/DS18S20 families of 1-Wire temperature sensor ICs.
 
 * [Documentation](https://esp-idf-lib.github.io/ds18x20/)
@@ -11,7 +15,7 @@ Driver for DS18B20/DS18S20 families of 1-Wire temperature sensor ICs.
 ## Installation
 
 ```sh
-idf.py add-dependency esp-idf-lib/ds18x20^1.2.0
+idf.py add-dependency esp-idf-lib/ds18x20
 ```
 
 ## Support
