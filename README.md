@@ -11,7 +11,7 @@ Driver for DS18B20/DS18S20 families of 1-Wire temperature sensor ICs.
 ## Installation
 
 ```sh
-idf.py add-dependency "esp-idf-lib/ds18x20^1.2.0
+idf.py add-dependency esp-idf-lib/ds18x20^1.2.0
 ```
 
 ## Support
