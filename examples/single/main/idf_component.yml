@@ -9,25 +9,3 @@ dependencies:
     version: "*"
   esp-idf-lib/onewire:
     version: "*"
----
-version: 1.0.0
-description: multi
-dependencies:
-  esp-idf-lib/ds18x20:
-    version: "*"
-    override_path: "../../../"
-  esp-idf-lib/esp_idf_lib_helpers:
-    version: "*"
-  esp-idf-lib/onewire:
-    version: "*"
----
-version: 1.0.0
-description: single
-dependencies:
-  esp-idf-lib/ds18x20:
-    version: "*"
-    override_path: "../../../"
-  esp-idf-lib/esp_idf_lib_helpers:
-    version: "*"
-  esp-idf-lib/onewire:
-    version: "*"
