@@ -91,9 +91,9 @@ void ds18x20_test(void *pvParameter)
                 // sdkconfig for ESP8266, which is enabled by default for this
                 // example. See sdkconfig.defaults.esp8266
                 ESP_LOGI(TAG, "Sensor %08" PRIx32 "%08" PRIx32 " (%s) reports %.3f°C (%.3f°F)",
-                        (uint32_t)(addrs[j] >> 32), (uint32_t)addrs[j],
-                        sensor_type(addrs[j]),
-                        temp_c, temp_f);
+                         (uint32_t)(addrs[j] >> 32), (uint32_t)addrs[j],
+                         sensor_type(addrs[j]),
+                         temp_c, temp_f);
             }
 
             // Wait for a little bit between each sample (note that the

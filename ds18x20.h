@@ -58,7 +58,8 @@ typedef onewire_addr_t ds18x20_addr_t;
 #define DS18X20_ANY ONEWIRE_NONE
 
 /** Family ID (lower address byte) of sensors */
-typedef enum {
+typedef enum
+{
     DS18X20_FAMILY_DS18S20  = 0x10, //!< DS1820/DS18S20  9-bit  +/-0.5°C
     DS18X20_FAMILY_DS1822   = 0x22, //!< DS1822          12-bit +/-2°C
     DS18X20_FAMILY_DS18B20  = 0x28, //!< DS18B20         12-bit +/-0.5°C

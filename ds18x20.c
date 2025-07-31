@@ -126,7 +126,7 @@ esp_err_t ds18x20_read_scratchpad(gpio_num_t pin, onewire_addr_t addr, uint8_t *
     if (crc != expected_crc)
     {
         ESP_LOGE(TAG, "CRC check failed reading scratchpad: %02x %02x %02x %02x %02x %02x %02x %02x : %02x (expected %02x)", buffer[0], buffer[1],
-                buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], crc, expected_crc);
+                 buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], crc, expected_crc);
         return ESP_ERR_INVALID_CRC;
     }
 
@@ -293,9 +293,9 @@ esp_err_t ds18x20_scan_devices(gpio_num_t pin, onewire_addr_t *addr_list, size_t
     {
         uint8_t family_id = (uint8_t)addr;
         if (family_id == DS18X20_FAMILY_DS18S20
-            || family_id == DS18X20_FAMILY_DS1822
-            || family_id == DS18X20_FAMILY_DS18B20
-            || family_id == DS18X20_FAMILY_MAX31850)
+                || family_id == DS18X20_FAMILY_DS1822
+                || family_id == DS18X20_FAMILY_DS18B20
+                || family_id == DS18X20_FAMILY_MAX31850)
         {
             if (*found < addr_count)
                 addr_list[*found] = addr;
