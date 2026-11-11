@@ -12,7 +12,7 @@ depends:
   - onewire
   - freertos
 thread_safe: no
-license: BSD-3
+license: BSD-3-Clause
 copyrights:
   - name: GrzegorzH
     year: 2016
