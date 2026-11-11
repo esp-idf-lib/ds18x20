@@ -22,4 +22,4 @@ Connect `DQ` pin to `CONFIG_EXAMPLE_ONEWIRE_GPIO`.
 
 | Name | Description | Defaults                                                                          |
 |------|-------------|-----------------------------------------------------------------------------------|
-| `CONFIG_EXAMPLE_ONEWIRE_GPIO` | GPIO Number of 1-Wire bus, or `DQ` | "18" for `esp32c3`, "17" for `esp32`, `esp32s2`, and `esp32s3` |
+| `CONFIG_EXAMPLE_ONEWIRE_GPIO` | GPIO Number of 1-Wire bus, or `DQ` | "17" for `esp32`, `esp32s2`, and `esp32s3`, "4" for `esp32c2`, `esp32c3`, `esp32c5`, `esp32c6`, `esp32c61`, `esp32h2`, and `esp32p4` |
