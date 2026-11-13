@@ -24,14 +24,18 @@ static const char *sensor_type(uint8_t family_id)
         case DS18X20_FAMILY_DS18B20:
             return "DS18B20";
         case DS18X20_FAMILY_MAX31850:
-            return "MAX31850";
+            return "DS1825/MAX31850";
+        case DS18X20_FAMILY_DS28EA00:
+            return "DS28EA00";
+        case DS18X20_FAMILY_MAX31888:
+            return "MAX31888";
     }
     return "Unknown";
 }
 
 void ds18x20_test(void *pvParameter)
 {
-    onewire_addr_t addrs[MAX_SENSORS];
+    ds18x20_addr_t addrs[MAX_SENSORS];
     float temps[MAX_SENSORS];
     size_t sensor_count = 0;
 
@@ -61,6 +65,7 @@ void ds18x20_test(void *pvParameter)
         if (!sensor_count)
         {
             ESP_LOGW(TAG, "No sensors detected!");
+            vTaskDelay(pdMS_TO_TICKS(LOOP_DELAY_MS));
             continue;
         }
 

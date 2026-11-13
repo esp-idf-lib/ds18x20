@@ -1,6 +1,6 @@
 ---
 version: 1.0.0
-description: single
+description: default
 dependencies:
   esp-idf-lib/ds18x20:
     version: "*"
