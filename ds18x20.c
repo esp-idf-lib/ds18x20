@@ -548,10 +548,6 @@ esp_err_t ds18x20_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *t
             return ds18b20_read_temperature(pin, addr, temperature);
         case DS18X20_FAMILY_MAX31850:
             return max31850_read_temperature(pin, addr, temperature);
-        case DS18X20_FAMILY_MAX31888:
-            ESP_LOGE(TAG, "The MAX31888 keeps the temperature in a FIFO of 16-bit words with a 0.005°C LSB, "
-                          "which this driver does not support yet. Use an explicit function for it");
-            break;
         default:
             ESP_LOGE(TAG, "Unknown sensor family %02x. Please use an explicit read/measure function", family);
     }
@@ -667,8 +663,7 @@ esp_err_t ds18x20_scan_devices(gpio_num_t pin, ds18x20_addr_t *addr_list, size_t
                 || family_id == DS18X20_FAMILY_DS1822
                 || family_id == DS18X20_FAMILY_DS18B20
                 || family_id == DS18X20_FAMILY_MAX31850
-                || family_id == DS18X20_FAMILY_DS28EA00
-                || family_id == DS18X20_FAMILY_MAX31888)
+                || family_id == DS18X20_FAMILY_DS28EA00)
         {
             if (*found < addr_count)
                 addr_list[*found] = addr;

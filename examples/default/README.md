@@ -9,9 +9,7 @@ address of the sensor is not configured anywhere, so the example works with
 any sensor that happens to be on the bus.
 
 When the sensor stops answering, for example because it was unplugged, the
-example scans the bus again, so a sensor can be replaced on the fly. A sensor
-of the MAX31888 family is skipped: the driver recognizes the family, but
-cannot read it yet.
+example scans the bus again, so a sensor can be replaced on the fly.
 
 The example works with both 1-Wire backends, and the default one is the
 bit-banging driver of `esp-idf-lib/onewire`. Pick the RMT backend of

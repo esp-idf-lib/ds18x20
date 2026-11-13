@@ -27,8 +27,6 @@ static const char *sensor_type(uint8_t family_id)
             return "DS1825/MAX31850";
         case DS18X20_FAMILY_DS28EA00:
             return "DS28EA00";
-        case DS18X20_FAMILY_MAX31888:
-            return "MAX31888";
     }
     return "Unknown";
 }
