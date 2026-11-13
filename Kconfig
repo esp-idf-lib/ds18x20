@@ -1,0 +1,34 @@
+menu "DS18x20"
+
+	choice DS18X20_ONEWIRE_BACKEND
+		prompt "1-Wire backend"
+		default DS18X20_ONEWIRE_BACKEND_BITBANG
+		help
+			The driver needs a 1-Wire bus implementation. Two of them are
+			available: the bit-banging driver of esp-idf-lib and the RMT
+			driver of Espressif (component espressif/onewire_bus).
+
+			The bit-banging driver does not use any peripheral, but it
+			keeps the interrupts disabled while a byte is transferred.
+			The RMT driver runs in the background, so it tolerates long
+			interrupt latencies better, but it occupies a pair of RMT
+			channels.
+
+		config DS18X20_ONEWIRE_BACKEND_BITBANG
+			bool "esp-idf-lib bit-banging driver"
+		config DS18X20_ONEWIRE_BACKEND_ESPRESSIF
+			bool "espressif/onewire_bus (RMT)"
+	endchoice
+
+	config DS18X20_MAX_BUSES
+		int "Maximum number of 1-Wire buses"
+		depends on DS18X20_ONEWIRE_BACKEND_ESPRESSIF
+		range 1 8
+		default 4
+		help
+			The RMT backend needs a bus object for every GPIO pin the driver
+			is used with. The objects are created on the first access to the
+			pin and are kept until ds18x20_bus_free() is called. Note that
+			every bus occupies a pair of RMT channels.
+
+endmenu

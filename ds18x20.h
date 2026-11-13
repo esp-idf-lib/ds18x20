@@ -45,26 +45,90 @@
 #ifndef __DS18X20_H__
 #define __DS18X20_H__
 
+#include <stdint.h>
 #include <esp_err.h>
+#include <driver/gpio.h>
+
+#if CONFIG_DS18X20_ONEWIRE_BACKEND_ESPRESSIF
+/** @brief Address of a DS18x20 device on the bus */
+typedef uint64_t ds18x20_addr_t;
+
+/** An address value which can be used to indicate "any device on the bus" */
+#define DS18X20_ANY ((ds18x20_addr_t)0)
+#else
+// The bit-banging backend is built on top of the onewire component, and the
+// address type of the driver is the type of that component.
 #include <onewire.h>
+
+/** @brief Address of a DS18x20 device on the bus */
+typedef onewire_addr_t ds18x20_addr_t;
+
+/** An address value which can be used to indicate "any device on the bus" */
+#define DS18X20_ANY ONEWIRE_NONE
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef onewire_addr_t ds18x20_addr_t;
-
-/** An address value which can be used to indicate "any device on the bus" */
-#define DS18X20_ANY ONEWIRE_NONE
-
 /** Family ID (lower address byte) of sensors */
 typedef enum
 {
     DS18X20_FAMILY_DS18S20  = 0x10, //!< DS1820/DS18S20  9-bit  +/-0.5°C
-    DS18X20_FAMILY_DS1822   = 0x22, //!< DS1822          12-bit +/-2°C
-    DS18X20_FAMILY_DS18B20  = 0x28, //!< DS18B20         12-bit +/-0.5°C
+    DS18X20_FAMILY_DS1822   = 0x22, //!< DS1822          9-12 bit, 0.0625°C
+    DS18X20_FAMILY_DS18B20  = 0x28, //!< DS18B20         9-12 bit, 0.0625°C
     DS18X20_FAMILY_MAX31850 = 0x3b, //!< MAX31850        14-bit +/-0.25°C
+    DS18X20_FAMILY_DS1825   = 0x3b, //!< DS1825          9-12 bit (same family code as MAX31850)
+    DS18X20_FAMILY_DS28EA00 = 0x42, //!< DS28EA00        9-12 bit, 0.0625°C
+    DS18X20_FAMILY_MAX31888 = 0x54, //!< MAX31888        13-16 bit, 0.005°C (not supported yet)
 } ds18x20_family_id_t;
+
+/** Resolution of the temperature conversion (DS1822/DS18B20/DS1825/DS28EA00) */
+typedef enum
+{
+    DS18X20_RESOLUTION_9_BIT  = 9,  //!< 0.5°C,   93.75 ms
+    DS18X20_RESOLUTION_10_BIT = 10, //!< 0.25°C,  187.5 ms
+    DS18X20_RESOLUTION_11_BIT = 11, //!< 0.125°C, 375 ms
+    DS18X20_RESOLUTION_12_BIT = 12, //!< 0.0625°C, 750 ms
+} ds18x20_resolution_t;
+
+/**
+ * @brief Prepare the 1-Wire bus on a pin.
+ *
+ * The driver can be built on top of the bit-banging onewire component or on
+ * top of the RMT-based `espressif/onewire_bus` component, depending on
+ * `CONFIG_DS18X20_ONEWIRE_BACKEND`. In the first case the function only
+ * validates the pin: the bus is driven directly by the bit-banging code.
+ *
+ * In the second case the bus handle is created on demand, so calling this
+ * function is not required: it only lets the application reserve the bus
+ * before the first operation and detect the failure at a known place.
+ * At most `CONFIG_DS18X20_MAX_BUSES` buses can be open at the same time.
+ *
+ * @param pin  The GPIO pin connected to the DS18x20 bus
+ *
+ * @returns `ESP_OK` on success
+ *          `ESP_ERR_INVALID_ARG` if the pin is not usable
+ *          `ESP_ERR_NO_MEM` if there is no room for another bus
+ *          other error codes of the underlying backend
+ */
+esp_err_t ds18x20_bus_init(gpio_num_t pin);
+
+/**
+ * @brief Release the 1-Wire bus on a pin.
+ *
+ * With the bit-banging backend there is nothing to release: the function only
+ * validates the pin. With the RMT-based backend the bus handle is destroyed,
+ * which frees the RMT channels; the next operation on the pin creates the bus
+ * again.
+ *
+ * @param pin  The GPIO pin connected to the DS18x20 bus
+ *
+ * @returns `ESP_OK` on success
+ *          `ESP_ERR_INVALID_ARG` if the pin is not usable
+ *          `ESP_ERR_NOT_FOUND` if the bus on the pin was not open
+ */
+esp_err_t ds18x20_bus_free(gpio_num_t pin);
 
 /**
  * @brief Find the addresses of all ds18x20 devices on the bus.
@@ -74,7 +138,7 @@ typedef enum
  * first `addr_count` are recorded.
  *
  * @param pin         The GPIO pin connected to the DS18x20 bus
- * @param addr_list   A pointer to an array of ::onewire_addr_t values.
+ * @param addr_list   A pointer to an array of ::ds18x20_addr_t values.
  *                    This will be populated with the addresses of the found
  *                    devices.
  * @param addr_count  Number of slots in the `addr_list` array. At most this
@@ -85,7 +149,7 @@ typedef enum
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t ds18x20_scan_devices(gpio_num_t pin, onewire_addr_t *addr_list, size_t addr_count, size_t *found);
+esp_err_t ds18x20_scan_devices(gpio_num_t pin, ds18x20_addr_t *addr_list, size_t addr_count, size_t *found);
 
 /**
  * @brief Tell one or more sensors to perform a temperature measurement and
@@ -102,6 +166,12 @@ esp_err_t ds18x20_scan_devices(gpio_num_t pin, onewire_addr_t *addr_list, size_t
  * and then depower the bus using onewire_depower() or by issuing another
  * command once conversion is done.
  *
+ * Only the bit-banging backend can hold the bus with a strong pull-up, which
+ * parasitically-powered devices need during the conversion: it drives the pin
+ * as a push-pull output for the whole @c wait_ms. The RMT-based backend has no
+ * strong pull-up at all, so such devices require an external transistor
+ * switched pull-up; with @c wait=false neither backend drives the bus.
+ *
  * @param pin   The GPIO pin connected to the DS18x20 device
  * @param addr  The 64-bit address of the device on the bus. This can be set
  *              to ::DS18X20_ANY to send the command to all devices on the bus
@@ -112,7 +182,7 @@ esp_err_t ds18x20_scan_devices(gpio_num_t pin, onewire_addr_t *addr_list, size_t
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t ds18x20_measure(gpio_num_t pin, onewire_addr_t addr, bool wait);
+esp_err_t ds18x20_measure(gpio_num_t pin, ds18x20_addr_t addr, bool wait);
 
 /**
  * @brief Read the value from the last CONVERT_T operation.
@@ -129,7 +199,7 @@ esp_err_t ds18x20_measure(gpio_num_t pin, onewire_addr_t addr, bool wait);
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t ds18x20_read_temperature(gpio_num_t pin, onewire_addr_t addr, float *temperature);
+esp_err_t ds18x20_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
  * @brief Read the value from the last CONVERT_T operation (DS18B20/DS1822 version).
@@ -146,7 +216,7 @@ esp_err_t ds18x20_read_temperature(gpio_num_t pin, onewire_addr_t addr, float *t
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t ds18b20_read_temperature(gpio_num_t pin, onewire_addr_t addr, float *temperature);
+esp_err_t ds18b20_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
  * @brief Read the value from the last CONVERT_T operation (DS18S20 version).
@@ -163,7 +233,7 @@ esp_err_t ds18b20_read_temperature(gpio_num_t pin, onewire_addr_t addr, float *t
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t ds18s20_read_temperature(gpio_num_t pin, onewire_addr_t addr, float *temperature);
+esp_err_t ds18s20_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
  * @brief Read the value from the last CONVERT_T operation (MAX31850 version).
@@ -180,7 +250,7 @@ esp_err_t ds18s20_read_temperature(gpio_num_t pin, onewire_addr_t addr, float *t
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t max31850_read_temperature(gpio_num_t pin, onewire_addr_t addr, float *temperature);
+esp_err_t max31850_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
  * @brief Read the value from the last CONVERT_T operation for multiple devices.
@@ -196,7 +266,7 @@ esp_err_t max31850_read_temperature(gpio_num_t pin, onewire_addr_t addr, float *
  *
  * @returns `ESP_OK` if all temperatures were fetched successfully
  */
-esp_err_t ds18x20_read_temp_multi(gpio_num_t pin, onewire_addr_t *addr_list, size_t addr_count, float *result_list);
+esp_err_t ds18x20_read_temp_multi(gpio_num_t pin, ds18x20_addr_t *addr_list, size_t addr_count, float *result_list);
 
 /** Perform a ds18x20_measure() followed by ds18x20_read_temperature()
  *
@@ -207,7 +277,7 @@ esp_err_t ds18x20_read_temp_multi(gpio_num_t pin, onewire_addr_t *addr_list, siz
  *                     connected, or they will corrupt each others' transmissions)
  *  @param temperature The temperature in degrees Celsius
  */
-esp_err_t ds18x20_measure_and_read(gpio_num_t pin, onewire_addr_t addr, float *temperature);
+esp_err_t ds18x20_measure_and_read(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
  * @brief Perform a ds18x20_measure() followed by ds18s20_read_temperature()
@@ -219,7 +289,7 @@ esp_err_t ds18x20_measure_and_read(gpio_num_t pin, onewire_addr_t addr, float *t
  *                    connected, or they will corrupt each others' transmissions)
  * @param temperature The temperature in degrees Celsius
  */
-esp_err_t ds18s20_measure_and_read(gpio_num_t pin, onewire_addr_t addr, float *temperature);
+esp_err_t ds18s20_measure_and_read(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
  * @brief Perform a ds18x20_measure() followed by ds18b20_read_temperature()
@@ -231,7 +301,7 @@ esp_err_t ds18s20_measure_and_read(gpio_num_t pin, onewire_addr_t addr, float *t
  *                    connected, or they will corrupt each others' transmissions)
  * @param temperature The temperature in degrees Celsius
  */
-esp_err_t ds18b20_measure_and_read(gpio_num_t pin, onewire_addr_t addr, float *temperature);
+esp_err_t ds18b20_measure_and_read(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
  * @brief Perform a ds18x20_measure() followed by max31850_read_temperature()
@@ -243,7 +313,7 @@ esp_err_t ds18b20_measure_and_read(gpio_num_t pin, onewire_addr_t addr, float *t
  *                    connected, or they will corrupt each others' transmissions)
  * @param temperature The temperature in degrees Celsius
  */
-esp_err_t max31850_measure_and_read(gpio_num_t pin, onewire_addr_t addr, float *temperature);
+esp_err_t max31850_measure_and_read(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
  * @brief Perform a ds18x20_measure() followed by ds18x20_read_temp_multi()
@@ -256,7 +326,7 @@ esp_err_t max31850_measure_and_read(gpio_num_t pin, onewire_addr_t addr, float *
  *
  * @returns `ESP_OK` if all temperatures were fetched successfully
  */
-esp_err_t ds18x20_measure_and_read_multi(gpio_num_t pin, onewire_addr_t *addr_list, size_t addr_count, float *result_list);
+esp_err_t ds18x20_measure_and_read_multi(gpio_num_t pin, ds18x20_addr_t *addr_list, size_t addr_count, float *result_list);
 
 /**
  * @brief Read the scratchpad data for a particular ds18x20 device.
@@ -273,7 +343,7 @@ esp_err_t ds18x20_measure_and_read_multi(gpio_num_t pin, onewire_addr_t *addr_li
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t ds18x20_read_scratchpad(gpio_num_t pin, onewire_addr_t addr, uint8_t *buffer);
+esp_err_t ds18x20_read_scratchpad(gpio_num_t pin, ds18x20_addr_t addr, uint8_t *buffer);
 
 /**
  * @brief Write the scratchpad data for a particular ds18x20 device.
@@ -287,7 +357,7 @@ esp_err_t ds18x20_read_scratchpad(gpio_num_t pin, onewire_addr_t addr, uint8_t *
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t ds18x20_write_scratchpad(gpio_num_t pin, onewire_addr_t addr, uint8_t *buffer);
+esp_err_t ds18x20_write_scratchpad(gpio_num_t pin, ds18x20_addr_t addr, uint8_t *buffer);
 
 /**
  * @brief Issue the copy scratchpad command, copying current scratchpad to
@@ -301,7 +371,51 @@ esp_err_t ds18x20_write_scratchpad(gpio_num_t pin, onewire_addr_t addr, uint8_t 
  *
  * @returns `ESP_OK` if the command was successfully issued
  */
-esp_err_t ds18x20_copy_scratchpad(gpio_num_t pin, onewire_addr_t addr);
+esp_err_t ds18x20_copy_scratchpad(gpio_num_t pin, ds18x20_addr_t addr);
+
+/**
+ * @brief Read the resolution of the temperature conversion.
+ *
+ * The resolution is read from the configuration register of the scratchpad,
+ * so it is the value the sensor currently uses, not the one that will be
+ * used after the next power cycle (see ds18x20_set_resolution()).
+ *
+ * @param pin         The GPIO pin connected to the DS18x20 bus
+ * @param addr        The 64-bit address of the device
+ * @param resolution  Where to store the resolution
+ *
+ * @returns `ESP_OK` on success
+ *          `ESP_ERR_INVALID_ARG` if an argument is invalid
+ *          `ESP_ERR_NOT_SUPPORTED` if the sensor has a fixed resolution
+ *          other error codes of ds18x20_read_scratchpad()
+ */
+esp_err_t ds18x20_get_resolution(gpio_num_t pin, ds18x20_addr_t addr, ds18x20_resolution_t *resolution);
+
+/**
+ * @brief Set the resolution of the temperature conversion.
+ *
+ * The resolution is written to the scratchpad and copied to the EEPROM of the
+ * sensor, so it survives a power cycle. The conversion takes 93.75, 187.5,
+ * 375 or 750 ms depending on the resolution, and ds18x20_measure() always
+ * waits for the longest one.
+ *
+ * The DS18S20 has a fixed 9-bit resolution, and the MAX31850 is a
+ * thermocouple converter with a fixed 14-bit resolution, so
+ * `ESP_ERR_NOT_SUPPORTED` is returned for them. The DS1825 shares the family
+ * code 0x3B with the MAX31850 and is therefore rejected as well: use
+ * ds18x20_write_scratchpad() for it if you need a different resolution.
+ *
+ * @param pin         The GPIO pin connected to the DS18x20 bus
+ * @param addr        The 64-bit address of the device
+ * @param resolution  The requested resolution
+ *
+ * @returns `ESP_OK` on success
+ *          `ESP_ERR_INVALID_ARG` if an argument is invalid
+ *          `ESP_ERR_NOT_SUPPORTED` if the sensor has a fixed resolution
+ *          `ESP_ERR_INVALID_RESPONSE` if the scratchpad could not be read
+ *          other error codes of the underlying commands
+ */
+esp_err_t ds18x20_set_resolution(gpio_num_t pin, ds18x20_addr_t addr, ds18x20_resolution_t resolution);
 
 
 #ifdef __cplusplus
