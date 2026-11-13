@@ -24,7 +24,6 @@ The driver works on top of a 1-Wire bus implementation, and there are two of the
 | `0x3B` | DS1825 | 9–12 bit | 0.0625 °C | Shares the family code with the MAX31850; the driver reads it with the 14-bit formula, which is correct because the two unused low bits are zero |
 | `0x3B` | MAX31850, MAX31851 | 14 bit | 0.0625 °C | Thermocouple-to-digital converter, `ds18x20_read_temperature()` handles it |
 | `0x42` | DS28EA00 | 9–12 bit | 0.0625 °C | Sequence detect and PIO pins, both unused by the driver |
-| `0x54` | MAX31888 | 13–16 bit | 0.005 °C | Recognized during the scan, but not supported yet: it keeps the readings in a FIFO and uses another command set |
 
 `ds18x20_scan_devices()` returns all devices of the families above, and `ds18x20_read_temperature()` picks the right formula by the family code. The per-family functions (`ds18s20_read_temperature()`, `ds18b20_read_temperature()`, `max31850_read_temperature()`) remain available for the cases where the address is known in advance.
 

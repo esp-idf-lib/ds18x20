@@ -52,12 +52,6 @@ Supported sensors
      - 9–12 bit
      - 0.0625 °C
      - Sequence detect and PIO pins, both unused by the driver
-   * - ``0x54``
-     - MAX31888
-     - 13–16 bit
-     - 0.005 °C
-     - Recognized during the scan, but not supported yet: it keeps the readings
-       in a FIFO and uses another command set
 
 ``ds18x20_scan_devices()`` returns all devices of the families above, and
 ``ds18x20_read_temperature()`` picks the right formula by the family code. The

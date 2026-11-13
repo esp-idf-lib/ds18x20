@@ -80,7 +80,6 @@ typedef enum
     DS18X20_FAMILY_MAX31850 = 0x3b, //!< MAX31850        14-bit +/-0.25°C
     DS18X20_FAMILY_DS1825   = 0x3b, //!< DS1825          9-12 bit (same family code as MAX31850)
     DS18X20_FAMILY_DS28EA00 = 0x42, //!< DS28EA00        9-12 bit, 0.0625°C
-    DS18X20_FAMILY_MAX31888 = 0x54, //!< MAX31888        13-16 bit, 0.005°C (not supported yet)
 } ds18x20_family_id_t;
 
 /** Resolution of the temperature conversion (DS1822/DS18B20/DS1825/DS28EA00) */

@@ -24,18 +24,8 @@ static const char *sensor_type(uint8_t family_id)
             return "DS1825/MAX31850";
         case DS18X20_FAMILY_DS28EA00:
             return "DS28EA00";
-        case DS18X20_FAMILY_MAX31888:
-            return "MAX31888";
     }
     return "Unknown";
-}
-
-// Returns true for the families the driver can convert. The MAX31888 uses
-// a FIFO and another command set, so the scan finds it, but the read fails
-// with ESP_ERR_NOT_SUPPORTED.
-static bool is_supported(ds18x20_addr_t addr)
-{
-    return (uint8_t)addr != DS18X20_FAMILY_MAX31888;
 }
 
 // Returns true if the sensor failed before, for example because it is
@@ -72,7 +62,7 @@ static bool find_sensor(ds18x20_addr_t *addr, const ds18x20_addr_t *rejected, si
 
     for (size_t i = 0; i < count; i++)
     {
-        if (!is_supported(addrs[i]) || is_rejected(addrs[i], rejected, rejected_count))
+        if (is_rejected(addrs[i], rejected, rejected_count))
             continue;
 
         *addr = addrs[i];
